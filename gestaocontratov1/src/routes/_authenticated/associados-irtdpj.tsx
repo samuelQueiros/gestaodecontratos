@@ -25,6 +25,13 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, StatusBadge } from "@/components/page-header";
 import { brl } from "@/lib/mock-data";
@@ -565,78 +572,85 @@ function AssociadosIrtdpjPage() {
           </div>
 
           <Card className="p-4 mt-6 border shadow-[var(--shadow-card)]">
-            <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_150px_150px_180px_170px_170px_auto]">
-              <div className="relative">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="relative min-w-[260px] flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por cartorio, CNPJ, CNS, email ou descricao"
-                  className="pl-9"
+                  placeholder="Buscar por cartório, CNPJ, CNS, e-mail..."
+                  className="pl-9 h-10"
                 />
               </div>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="todos">Todos os status</option>
-                <option value="PAGO">Pagas</option>
-                <option value="PENDENTE">Pendentes</option>
-              </select>
-              <select
-                value={situacao}
-                onChange={(event) => setSituacao(event.target.value)}
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="todos">Ativos e inativos</option>
-                <option value="ativos">Somente ativos</option>
-                <option value="inativos">Somente inativos</option>
-              </select>
-              <select
-                value={month}
-                onChange={(event) => setMonth(event.target.value)}
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="todos">Todos os meses</option>
-                {data.meses.map((mes) => (
-                  <option key={mes} value={mes}>
-                    {mes}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={tipo}
-                onChange={(event) => setTipo(event.target.value)}
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="todos">Todos os tipos</option>
-                {tipos.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={pendencias}
-                onChange={(event) => setPendencias(event.target.value)}
-                className="h-10 rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="todos">Todas as situacoes</option>
-                <option value="pendentes">Com pendencia</option>
-              </select>
-              <Button type="button" variant="outline" className="gap-2" onClick={resetFilters}>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-[160px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  <SelectItem value="PAGO">Pagas</SelectItem>
+                  <SelectItem value="PENDENTE">Pendentes</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={situacao} onValueChange={setSituacao}>
+                <SelectTrigger className="w-[160px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Ativos e inativos</SelectItem>
+                  <SelectItem value="ativos">Somente ativos</SelectItem>
+                  <SelectItem value="inativos">Somente inativos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger className="w-[170px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os meses</SelectItem>
+                  {data.meses.map((mes) => (
+                    <SelectItem key={mes} value={mes}>
+                      {mes}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tipo} onValueChange={setTipo}>
+                <SelectTrigger className="w-[160px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os tipos</SelectItem>
+                  {tipos.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={pendencias} onValueChange={setPendencias}>
+                <SelectTrigger className="w-[160px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Com e sem pendência</SelectItem>
+                  <SelectItem value="pendentes">Com pendência</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" className="gap-2 h-10" onClick={resetFilters}>
                 <FilterX className="h-4 w-4" /> Limpar
               </Button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span>{filteredAssociados.length} associados</span>
-              <span>{filteredRemessas.length} remessas</span>
-              <span>{filteredCompetencias.length} competencias</span>
-              <span>{filteredExtrato.length} linhas de extrato</span>
-              <span>
-                {summary.boletosPendentesIgnorados} boletos pendentes ignorados por competencia paga
-              </span>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t pt-3">
+              <span><span className="font-semibold text-foreground">{filteredAssociados.length}</span> associados</span>
+              <span><span className="font-semibold text-foreground">{filteredRemessas.length}</span> remessas</span>
+              <span><span className="font-semibold text-foreground">{filteredCompetencias.length}</span> competências</span>
+              <span><span className="font-semibold text-foreground">{filteredExtrato.length}</span> linhas de extrato</span>
+              {summary.boletosPendentesIgnorados > 0 && (
+                <span className="text-amber-600">
+                  <span className="font-semibold">{summary.boletosPendentesIgnorados}</span> boletos pendentes ignorados (competência paga)
+                </span>
+              )}
             </div>
           </Card>
 

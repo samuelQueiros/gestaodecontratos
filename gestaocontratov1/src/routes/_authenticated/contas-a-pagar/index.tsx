@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plus, Search, Filter, Eye, Pencil, Trash2, Download, MoreHorizontal } from "lucide-react";
+import { Plus, Search, FilterX, Eye, Pencil, Trash2, Download, MoreHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ function ListPage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("todos");
+  const [periodo, setPeriodo] = useState<string>("all");
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
@@ -44,9 +45,26 @@ function ListPage() {
       if (status !== "todos" && c.status !== status) return false;
       if (q && !`${c.fornecedor} ${c.categoria} ${c.id}`.toLowerCase().includes(q.toLowerCase()))
         return false;
+      if (periodo !== "all") {
+        const days = parseInt(periodo);
+        const today = new Date().toISOString().split("T")[0];
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() + days);
+        const cutoff = cutoffDate.toISOString().split("T")[0];
+        if (c.vencimento < today || c.vencimento > cutoff) return false;
+      }
       return true;
     });
-  }, [q, status]);
+  }, [q, status, periodo]);
+
+  const hasFilters = q !== "" || status !== "todos" || periodo !== "all";
+
+  function clearFilters() {
+    setQ("");
+    setStatus("todos");
+    setPeriodo("all");
+    setPage(1);
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -98,27 +116,35 @@ function ListPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="Pendente">Pendente</SelectItem>
               <SelectItem value="Pago">Pago</SelectItem>
               <SelectItem value="Vencido">Vencido</SelectItem>
               <SelectItem value="Parcial">Parcial</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="30">
-            <SelectTrigger className="w-[160px] h-10">
+          <Select
+            value={periodo}
+            onValueChange={(v) => {
+              setPeriodo(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[170px] h-10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
-              <SelectItem value="all">Todo período</SelectItem>
+              <SelectItem value="all">Todo o período</SelectItem>
+              <SelectItem value="7">Vence em até 7 dias</SelectItem>
+              <SelectItem value="30">Vence em até 30 dias</SelectItem>
+              <SelectItem value="90">Vence em até 90 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" /> Mais filtros
-          </Button>
+          {hasFilters && (
+            <Button variant="ghost" className="gap-2 text-muted-foreground" onClick={clearFilters}>
+              <FilterX className="h-4 w-4" /> Limpar
+            </Button>
+          )}
         </div>
 
         {/* Table */}
