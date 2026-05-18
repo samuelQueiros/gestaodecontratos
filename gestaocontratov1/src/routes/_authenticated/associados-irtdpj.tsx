@@ -32,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, StatusBadge } from "@/components/page-header";
 import { brl } from "@/lib/mock-data";
 
@@ -131,7 +130,7 @@ const COLORS = ["oklch(0.62 0.16 155)", "oklch(0.62 0.21 25)", "oklch(0.43 0.12 
 function normalizeText(value: unknown) {
   return String(value ?? "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 }
 
@@ -425,10 +424,28 @@ function AssociadosIrtdpjPage() {
     setPendencias("todos");
   }
 
+  const hasFilters =
+    query !== "" ||
+    status !== "todos" ||
+    month !== "todos" ||
+    tipo !== "todos" ||
+    situacao !== "todos" ||
+    pendencias !== "todos";
+
+  const TAB_TITLES: Record<string, string> = {
+    visao: "Dashboard",
+    remessas: "Remessas",
+    competencias: "Competências",
+    associados: "Associados",
+    extrato: "Extrato mensal",
+    pendencias: "Pendências",
+    relatorios: "Relatórios",
+  };
+
   return (
     <>
       <PageHeader
-        title="Associados IRTDPJ"
+        title={`Associados IRTDPJ — ${TAB_TITLES[activeTab] ?? activeTab}`}
         description="Painel alimentado pelas planilhas geradas pelo sync_irtdpj.py."
         actions={
           <a href="/data/irtdpj.json" target="_blank" rel="noreferrer">
@@ -451,6 +468,7 @@ function AssociadosIrtdpjPage() {
         </Card>
       ) : (
         <>
+          {/* Summary cards — always visible */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
               {
@@ -499,180 +517,198 @@ function AssociadosIrtdpjPage() {
             })}
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3 mt-6">
-            <Card className="p-6 lg:col-span-2 border shadow-[var(--shadow-card)]">
-              <div className="mb-5">
-                <h3 className="font-semibold text-primary-dark">Arrecadacao por competencia</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Valores pagos e pendentes por mes.
-                </p>
-              </div>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthChart}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="oklch(0.91 0.015 250)"
-                    />
-                    <XAxis dataKey="mes" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `R$ ${Number(v / 1000).toFixed(0)}k`}
-                    />
-                    <Tooltip
-                      formatter={(value: number) => brl(value)}
-                      contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                    />
-                    <Bar
-                      dataKey="pago"
-                      stackId="a"
-                      fill="oklch(0.62 0.16 155)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="pendente"
-                      stackId="a"
-                      fill="oklch(0.62 0.21 25)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+          {/* Charts — only on dashboard tab */}
+          {activeTab === "visao" && (
+            <div className="grid gap-4 lg:grid-cols-3 mt-6">
+              <Card className="p-6 lg:col-span-2 border shadow-[var(--shadow-card)]">
+                <div className="mb-5">
+                  <h3 className="font-semibold text-primary-dark">Arrecadação por competência</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Valores pagos e pendentes por mês.
+                  </p>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthChart}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="oklch(0.91 0.015 250)"
+                      />
+                      <XAxis dataKey="mes" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `R$ ${Number(v / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => brl(value)}
+                        contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                      />
+                      <Bar
+                        dataKey="pago"
+                        name="Pago"
+                        stackId="a"
+                        fill="oklch(0.62 0.16 155)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="pendente"
+                        name="Pendente"
+                        stackId="a"
+                        fill="oklch(0.62 0.21 25)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            <Card className="p-6 border shadow-[var(--shadow-card)]">
-              <div className="mb-2">
-                <h3 className="font-semibold text-primary-dark">Status das remessas</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Base atualizada em {formatGeneratedAt(data.generatedAt)}.
-                </p>
-              </div>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusChart}
-                      innerRadius={55}
-                      outerRadius={90}
-                      dataKey="value"
-                      paddingAngle={2}
-                    >
-                      {statusChart.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </div>
-
-          <Card className="p-4 mt-6 border shadow-[var(--shadow-card)]">
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative min-w-[260px] flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por cartório, CNPJ, CNS, e-mail..."
-                  className="pl-9 h-10"
-                />
-              </div>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-[160px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  <SelectItem value="PAGO">Pagas</SelectItem>
-                  <SelectItem value="PENDENTE">Pendentes</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={situacao} onValueChange={setSituacao}>
-                <SelectTrigger className="w-[160px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Ativos e inativos</SelectItem>
-                  <SelectItem value="ativos">Somente ativos</SelectItem>
-                  <SelectItem value="inativos">Somente inativos</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger className="w-[170px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os meses</SelectItem>
-                  {data.meses.map((mes) => (
-                    <SelectItem key={mes} value={mes}>
-                      {mes}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger className="w-[160px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os tipos</SelectItem>
-                  {tipos.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={pendencias} onValueChange={setPendencias}>
-                <SelectTrigger className="w-[160px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Com e sem pendência</SelectItem>
-                  <SelectItem value="pendentes">Com pendência</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="button" variant="outline" className="gap-2 h-10" onClick={resetFilters}>
-                <FilterX className="h-4 w-4" /> Limpar
-              </Button>
+              <Card className="p-6 border shadow-[var(--shadow-card)]">
+                <div className="mb-2">
+                  <h3 className="font-semibold text-primary-dark">Status das remessas</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Base atualizada em {formatGeneratedAt(data.generatedAt)}.
+                  </p>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusChart}
+                        innerRadius={55}
+                        outerRadius={90}
+                        dataKey="value"
+                        paddingAngle={2}
+                      >
+                        {statusChart.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
             </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t pt-3">
-              <span><span className="font-semibold text-foreground">{filteredAssociados.length}</span> associados</span>
-              <span><span className="font-semibold text-foreground">{filteredRemessas.length}</span> remessas</span>
-              <span><span className="font-semibold text-foreground">{filteredCompetencias.length}</span> competências</span>
-              <span><span className="font-semibold text-foreground">{filteredExtrato.length}</span> linhas de extrato</span>
-              {summary.boletosPendentesIgnorados > 0 && (
-                <span className="text-amber-600">
-                  <span className="font-semibold">{summary.boletosPendentesIgnorados}</span> boletos pendentes ignorados (competência paga)
+          )}
+
+          {/* Filters bar — visible on all detail tabs */}
+          {activeTab !== "visao" && (
+            <Card className="p-4 mt-6 border shadow-[var(--shadow-card)]">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative min-w-[260px] flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Buscar por cartório, CNPJ, CNS, e-mail..."
+                    className="pl-9 h-10"
+                  />
+                </div>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger className="w-[160px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    <SelectItem value="PAGO">Pagas</SelectItem>
+                    <SelectItem value="PENDENTE">Pendentes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={situacao} onValueChange={setSituacao}>
+                  <SelectTrigger className="w-[160px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Ativos e inativos</SelectItem>
+                    <SelectItem value="ativos">Somente ativos</SelectItem>
+                    <SelectItem value="inativos">Somente inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-[170px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os meses</SelectItem>
+                    {data.meses.map((mes) => (
+                      <SelectItem key={mes} value={mes}>
+                        {mes}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger className="w-[160px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os tipos</SelectItem>
+                    {tipos.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={pendencias} onValueChange={setPendencias}>
+                  <SelectTrigger className="w-[160px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Com e sem pendência</SelectItem>
+                    <SelectItem value="pendentes">Com pendência</SelectItem>
+                  </SelectContent>
+                </Select>
+                {hasFilters && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="gap-2 h-10 text-muted-foreground"
+                    onClick={resetFilters}
+                  >
+                    <FilterX className="h-4 w-4" /> Limpar
+                  </Button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t pt-3">
+                <span>
+                  <span className="font-semibold text-foreground">{filteredAssociados.length}</span>{" "}
+                  associados
                 </span>
-              )}
-            </div>
-          </Card>
+                <span>
+                  <span className="font-semibold text-foreground">{filteredRemessas.length}</span>{" "}
+                  remessas
+                </span>
+                <span>
+                  <span className="font-semibold text-foreground">
+                    {filteredCompetencias.length}
+                  </span>{" "}
+                  competências
+                </span>
+                <span>
+                  <span className="font-semibold text-foreground">{filteredExtrato.length}</span>{" "}
+                  extratos
+                </span>
+                {summary.boletosPendentesIgnorados > 0 && (
+                  <span className="text-amber-600">
+                    <span className="font-semibold">{summary.boletosPendentesIgnorados}</span>{" "}
+                    boletos pendentes ignorados (competência paga)
+                  </span>
+                )}
+              </div>
+            </Card>
+          )}
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(tab) => navigate({ to: "/associados-irtdpj", search: { tab } })}
-            className="mt-6"
-          >
-            <TabsList>
-              <TabsTrigger value="visao">Dashboard</TabsTrigger>
-              <TabsTrigger value="remessas">Remessas</TabsTrigger>
-              <TabsTrigger value="competencias">Competencias</TabsTrigger>
-              <TabsTrigger value="associados">Associados</TabsTrigger>
-              <TabsTrigger value="extrato">Extrato mensal</TabsTrigger>
-              <TabsTrigger value="pendencias">Pendencias</TabsTrigger>
-              <TabsTrigger value="relatorios">Relatorios</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="visao">
+          {/* Tab content — switched by sidebar navigation */}
+          <div className="mt-6">
+            {activeTab === "visao" && (
               <div className="grid gap-4 lg:grid-cols-2">
                 <DataTable
-                  headers={["Fonte", "Conteudo", "Registros"]}
+                  title="Fontes de dados"
+                  headers={["Arquivo", "Conteúdo", "Registros"]}
                   rows={[
                     ["associados.xlsx", "Cadastro completo dos associados", data.associados.length],
                     [
@@ -682,13 +718,14 @@ function AssociadosIrtdpjPage() {
                     ],
                     [
                       "extrato_por_cartorio.xlsx",
-                      "Extrato mensal por cartorio",
+                      "Extrato mensal por cartório",
                       data.extrato.length,
                     ],
                   ]}
-                  footer="Resumo das tres planilhas usadas como origem da visao IRTDPJ."
+                  footer="Resumo das três planilhas usadas como origem da visão IRTDPJ."
                 />
                 <DataTable
+                  title="Indicadores"
                   headers={["Indicador", "Valor", "Detalhe"]}
                   rows={[
                     [
@@ -696,165 +733,197 @@ function AssociadosIrtdpjPage() {
                       summary.ativos,
                       `${data.associados.length} cadastros totais`,
                     ],
-                    ["Competencias pagas", summary.pagos, brl(summary.totalPago)],
-                    ["Competencias pendentes", summary.pendentes, brl(summary.totalPendente)],
+                    ["Competências pagas", summary.pagos, brl(summary.totalPago)],
+                    ["Competências pendentes", summary.pendentes, brl(summary.totalPendente)],
                     [
                       "Boletos pendentes ignorados",
                       summary.boletosPendentesIgnorados,
-                      "Ha pagamento na mesma competencia",
+                      "Há pagamento na mesma competência",
                     ],
-                    ["Competencias", data.meses.length, `${data.meses[0]} a ${data.meses.at(-1)}`],
+                    ["Competências", data.meses.length, `${data.meses[0]} a ${data.meses.at(-1)}`],
                   ]}
-                  footer="Visao executiva consolidada a partir dos dados carregados."
+                  footer="Visão executiva consolidada a partir dos dados carregados."
                 />
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="remessas">
+            {activeTab === "remessas" && (
               <DataTable
+                title={`Remessas (${filteredRemessas.length})`}
                 headers={[
-                  "Cartorio",
+                  "Cartório",
                   "CNPJ",
                   "CNS",
-                  "Descricao",
+                  "Descrição",
                   "Tipo",
-                  "Competencia",
-                  "Status competencia",
+                  "Competência",
+                  "Status comp.",
                   "Valor",
                   "Vencimento",
                   "Pagamento",
-                  "Dias aberto",
-                  "Regra aplicada",
+                  "Dias em aberto",
                   "Status",
                 ]}
-                rows={filteredRemessas
-                  .slice(0, 400)
-                  .map((remessa) => [
-                    remessa.cartorio,
-                    remessa.cnpj,
-                    remessa.cns,
-                    remessa.descricao,
-                    remessa.tipo,
-                    getMonthLabel(remessa),
-                    remessa.statusCompetencia || remessa.status,
-                    brl(remessa.valor || 0),
-                    remessa.vencimento || "-",
-                    remessa.dataPagamento || "-",
-                    remessa.diasEmAberto || 0,
-                    remessa.pendenciaIgnoradaPorPagamentoNaCompetencia
-                      ? "Ignorada: competencia paga"
-                      : "-",
-                    <StatusBadge
-                      key="status"
-                      status={remessa.status === "PAGO" ? "Pago" : "Pendente"}
-                    />,
-                  ])}
-                footer={`${filteredRemessas.length} remessas encontradas. Exibindo as primeiras 400 para manter a tela rapida.`}
+                rows={filteredRemessas.map((remessa) => [
+                  remessa.cartorio,
+                  <span key="cnpj" className="font-mono text-xs">
+                    {remessa.cnpj}
+                  </span>,
+                  remessa.cns || "-",
+                  remessa.descricao,
+                  remessa.tipo,
+                  getMonthLabel(remessa),
+                  remessa.statusCompetencia || remessa.status,
+                  <span key="valor" className="font-semibold tabular-nums">
+                    {brl(remessa.valor || 0)}
+                  </span>,
+                  remessa.vencimento || "-",
+                  remessa.dataPagamento || "-",
+                  remessa.diasEmAberto || 0,
+                  <StatusBadge
+                    key="status"
+                    status={remessa.status === "PAGO" ? "Pago" : "Pendente"}
+                  />,
+                ])}
+                footer={`${filteredRemessas.length} remessas encontradas.`}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="competencias">
+            {activeTab === "competencias" && (
               <DataTable
+                title={`Competências (${filteredCompetencias.length})`}
                 headers={[
-                  "Cartorio",
+                  "Cartório",
                   "CNPJ",
                   "CNS",
-                  "Competencia",
-                  "Status competencia",
+                  "Competência",
+                  "Status",
                   "Valor pago",
                   "Valor pendente",
                   "Remessas",
                   "Pagas",
                   "Pendentes",
-                  "Pendencia ignorada",
+                  "Pendência ignorada",
                 ]}
-                rows={filteredCompetencias
-                  .slice(0, 400)
-                  .map((competencia) => [
-                    competencia.cartorio,
-                    competencia.cnpj,
-                    competencia.cns || "-",
-                    competencia.mes,
-                    competencia.statusCompetencia,
-                    brl(competencia.valorPago),
-                    brl(competencia.valorPendente),
-                    competencia.qtdRemessas,
-                    competencia.qtdRemessasPagas,
-                    competencia.qtdRemessasPendentes,
-                    competencia.temBoletoPendenteIgnorado ? "Sim" : "Nao",
-                  ])}
-                footer={`${filteredCompetencias.length} competencias consolidadas encontradas.`}
+                rows={filteredCompetencias.map((competencia) => [
+                  competencia.cartorio,
+                  <span key="cnpj" className="font-mono text-xs">
+                    {competencia.cnpj}
+                  </span>,
+                  competencia.cns || "-",
+                  competencia.mes,
+                  <StatusBadge
+                    key="status"
+                    status={competencia.statusCompetencia === "PAGO" ? "Pago" : "Pendente"}
+                  />,
+                  <span key="pago" className="font-semibold tabular-nums text-green-700">
+                    {brl(competencia.valorPago)}
+                  </span>,
+                  <span
+                    key="pendente"
+                    className={`font-semibold tabular-nums ${competencia.valorPendente > 0 ? "text-red-600" : "text-muted-foreground"}`}
+                  >
+                    {brl(competencia.valorPendente)}
+                  </span>,
+                  competencia.qtdRemessas,
+                  competencia.qtdRemessasPagas,
+                  competencia.qtdRemessasPendentes,
+                  competencia.temBoletoPendenteIgnorado ? (
+                    <span key="ig" className="text-amber-600 font-medium">
+                      Sim
+                    </span>
+                  ) : (
+                    "Não"
+                  ),
+                ])}
+                footer={`${filteredCompetencias.length} competências encontradas.`}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="associados">
+            {activeTab === "associados" && (
               <DataTable
+                title={`Associados (${filteredAssociados.length})`}
                 headers={[
                   "ID",
-                  "Cartorio",
+                  "Cartório",
                   "Nome",
                   "CPF/CNPJ",
-                  "CNPJ cartorio",
+                  "CNPJ cartório",
                   "CNS",
-                  "Data associacao",
+                  "Associação",
                   "Mensalidade",
-                  "Email",
+                  "E-mail",
                   "Telefone",
                   "Status",
                 ]}
-                rows={filteredAssociados
-                  .slice(0, 400)
-                  .map((associado) => [
-                    associado.associadoId,
-                    associado.nomeCartorio,
-                    associado.nome,
-                    associado.cpfCnpjPessoa,
-                    associado.cnpjCartorio,
-                    associado.cns,
-                    associado.dataAssociacao || "-",
-                    brl(associado.valorMensalidade || 0),
-                    associado.email || "-",
-                    associado.telefone || "-",
-                    <StatusBadge key="status" status={associado.ativo ? "Ativo" : "Inativo"} />,
-                  ])}
+                rows={filteredAssociados.map((associado) => [
+                  associado.associadoId,
+                  associado.nomeCartorio,
+                  associado.nome,
+                  <span key="cpf" className="font-mono text-xs">
+                    {associado.cpfCnpjPessoa}
+                  </span>,
+                  <span key="cnpj" className="font-mono text-xs">
+                    {associado.cnpjCartorio}
+                  </span>,
+                  associado.cns || "-",
+                  associado.dataAssociacao || "-",
+                  <span key="mens" className="font-semibold tabular-nums">
+                    {brl(associado.valorMensalidade || 0)}
+                  </span>,
+                  associado.email || "-",
+                  associado.telefone || "-",
+                  <StatusBadge key="status" status={associado.ativo ? "Ativo" : "Inativo"} />,
+                ])}
                 footer={`${filteredAssociados.length} associados encontrados.`}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="extrato">
+            {activeTab === "extrato" && (
               <DataTable
+                title={`Extrato mensal (${filteredExtrato.length})`}
                 headers={[
-                  "Cartorio",
+                  "Cartório",
                   "CNPJ",
                   "CNS",
                   "Mensalidade",
-                  "Pago",
-                  "Pendente",
+                  "Total pago",
+                  "Total pendente",
                   "Qtd paga",
                   "Qtd pendente",
                   ...data.meses,
                 ]}
-                rows={filteredExtrato
-                  .slice(0, 250)
-                  .map((linha) => [
-                    linha.cartorio,
-                    linha.cnpj,
-                    linha.cns || "-",
-                    brl(linha.mensalidade || 0),
-                    brl(linha.totalPago),
-                    brl(linha.totalPendente),
-                    linha.qtdPaga,
-                    linha.qtdPendente,
-                    ...data.meses.map((mes) => linha.meses[mes] || "-"),
-                  ])}
-                footer={`${filteredExtrato.length} cartorios no extrato. A tabela mostra todas as competencias disponiveis.`}
+                rows={filteredExtrato.map((linha) => [
+                  linha.cartorio,
+                  <span key="cnpj" className="font-mono text-xs">
+                    {linha.cnpj}
+                  </span>,
+                  linha.cns || "-",
+                  <span key="mens" className="tabular-nums">
+                    {brl(linha.mensalidade || 0)}
+                  </span>,
+                  <span key="pago" className="font-semibold tabular-nums text-green-700">
+                    {brl(linha.totalPago)}
+                  </span>,
+                  <span
+                    key="pend"
+                    className={`font-semibold tabular-nums ${linha.totalPendente > 0 ? "text-red-600" : "text-muted-foreground"}`}
+                  >
+                    {brl(linha.totalPendente)}
+                  </span>,
+                  linha.qtdPaga,
+                  linha.qtdPendente,
+                  ...data.meses.map((mes) => linha.meses[mes] || "-"),
+                ])}
+                footer={`${filteredExtrato.length} cartórios no extrato.`}
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="pendencias">
+            {activeTab === "pendencias" && (
               <DataTable
+                title="Maiores pendências"
                 headers={[
-                  "Cartorio",
+                  "Cartório",
                   "CNPJ",
                   "CNS",
                   "Total pendente",
@@ -863,62 +932,117 @@ function AssociadosIrtdpjPage() {
                 ]}
                 rows={topPendentes.map((linha) => [
                   linha.cartorio,
-                  linha.cnpj,
+                  <span key="cnpj" className="font-mono text-xs">
+                    {linha.cnpj}
+                  </span>,
                   linha.cns || "-",
-                  brl(linha.totalPendente),
+                  <span key="pend" className="font-semibold tabular-nums text-red-600">
+                    {brl(linha.totalPendente)}
+                  </span>,
                   linha.qtdPendente,
-                  brl(linha.mensalidade || 0),
+                  <span key="mens" className="tabular-nums">
+                    {brl(linha.mensalidade || 0)}
+                  </span>,
                 ])}
                 footer="Maiores saldos pendentes dentro do filtro atual."
               />
-            </TabsContent>
+            )}
 
-            <TabsContent value="relatorios">
+            {activeTab === "relatorios" && (
               <div className="grid gap-4 lg:grid-cols-2">
                 <DataTable
-                  headers={["Competencia", "Pago", "Pendente", "Total"]}
+                  title="Arrecadação por competência"
+                  headers={["Competência", "Pago", "Pendente", "Total"]}
                   rows={monthChart.map((linha) => [
                     linha.mes,
-                    brl(linha.pago),
-                    brl(linha.pendente),
-                    brl(linha.pago + linha.pendente),
+                    <span key="pago" className="font-semibold tabular-nums text-green-700">
+                      {brl(linha.pago)}
+                    </span>,
+                    <span
+                      key="pend"
+                      className={`font-semibold tabular-nums ${linha.pendente > 0 ? "text-red-600" : "text-muted-foreground"}`}
+                    >
+                      {brl(linha.pendente)}
+                    </span>,
+                    <span key="total" className="font-semibold tabular-nums">
+                      {brl(linha.pago + linha.pendente)}
+                    </span>,
                   ])}
-                  footer="Relatorio consolidado por competencia."
+                  footer="Relatório consolidado por competência."
                 />
                 <DataTable
-                  headers={["Cartorio", "CNPJ", "Total pendente", "Qtd pendente"]}
+                  title="Ranking de pendências"
+                  headers={["Cartório", "CNPJ", "Total pendente", "Qtd pendente"]}
                   rows={topPendentes.map((linha) => [
                     linha.cartorio,
-                    linha.cnpj,
-                    brl(linha.totalPendente),
+                    <span key="cnpj" className="font-mono text-xs">
+                      {linha.cnpj}
+                    </span>,
+                    <span key="pend" className="font-semibold tabular-nums text-red-600">
+                      {brl(linha.totalPendente)}
+                    </span>,
                     linha.qtdPendente,
                   ])}
-                  footer="Ranking de pendencias conforme o filtro atual."
+                  footer="Ranking de pendências conforme o filtro atual."
                 />
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         </>
       )}
     </>
   );
 }
 
+const PAGE_SIZE = 10;
+
 function DataTable({
+  title,
   headers,
   rows,
   footer,
 }: {
+  title?: string;
   headers: string[];
   rows: React.ReactNode[][];
   footer: string;
 }) {
+  const [page, setPage] = React.useState(1);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [rows.length]);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageData = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const from = rows.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, rows.length);
+
+  const pageNumbers = React.useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const delta = 2;
+    const range: (number | "...")[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - delta && i <= page + delta)) {
+        range.push(i);
+      } else if (range[range.length - 1] !== "...") {
+        range.push("...");
+      }
+    }
+    return range;
+  }, [totalPages, page]);
+
   return (
     <Card className="border shadow-[var(--shadow-card)] overflow-hidden">
+      {title && (
+        <div className="px-4 py-3 border-b bg-muted/20">
+          <h3 className="text-sm font-semibold text-primary-dark">{title}</h3>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase text-muted-foreground border-b bg-muted/30">
+            <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b bg-muted/40">
               {headers.map((header) => (
                 <th key={header} className="px-4 py-2.5 font-semibold whitespace-nowrap">
                   {header}
@@ -927,19 +1051,93 @@ function DataTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={index} className="border-b last:border-0 hover:bg-muted/40">
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-3 align-top max-w-[340px]">
-                    <div className="line-clamp-2">{cell}</div>
-                  </td>
-                ))}
+            {pageData.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={headers.length}
+                  className="px-4 py-10 text-center text-sm text-muted-foreground"
+                >
+                  Nenhum registro encontrado para os filtros aplicados.
+                </td>
               </tr>
-            ))}
+            ) : (
+              pageData.map((row, index) => (
+                <tr
+                  key={index}
+                  className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                >
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      className="px-4 py-2.5 align-middle max-w-[260px] truncate"
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-3 text-xs text-muted-foreground bg-muted/20 border-t">{footer}</div>
+
+      <div className="px-4 py-3 border-t bg-muted/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-muted-foreground">
+        <div>
+          {rows.length === 0 ? (
+            footer
+          ) : (
+            <>
+              Exibindo{" "}
+              <span className="font-semibold text-primary-dark">
+                {from}–{to}
+              </span>{" "}
+              de{" "}
+              <span className="font-semibold text-primary-dark">{rows.length}</span> registros
+              {" · "}
+              {footer}
+            </>
+          )}
+        </div>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Anterior
+            </Button>
+            {pageNumbers.map((p, i) =>
+              p === "..." ? (
+                <span key={`ellipsis-${i}`} className="px-1">
+                  …
+                </span>
+              ) : (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={page === p ? "default" : "outline"}
+                  className="h-7 w-7 p-0 text-xs"
+                  onClick={() => setPage(p as number)}
+                >
+                  {p}
+                </Button>
+              ),
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
+        )}
+      </div>
     </Card>
   );
 }
