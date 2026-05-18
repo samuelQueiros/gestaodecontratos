@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      context: ./gestaocontratov1
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./gestaocontratov1/public/data:/app/public/data
